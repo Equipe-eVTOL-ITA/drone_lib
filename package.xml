@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
-  <name>cbr_drone_lib</name>
+  <name>drone_lib</name>
   <version>0.0.0</version>
   <description>TODO: Package description</description>
   <maintainer email="moisesmgft@gmail.com">Moisés Moreira Gonçalves Feltrin Thimoteo</maintainer>
