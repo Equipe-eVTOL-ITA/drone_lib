@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.8)
-project(cbr_drone_lib)
+project(drone_lib)
 
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
@@ -35,11 +35,11 @@ endif()
 
 include_directories(include)
 
-add_library(cbr_drone_lib SHARED
+add_library(drone_lib SHARED
   src/Drone.cpp
 )
 
-ament_target_dependencies(cbr_drone_lib
+ament_target_dependencies(drone_lib
   Eigen3
   px4_msgs
   rclcpp
@@ -57,7 +57,7 @@ ament_target_dependencies(system_health
   custom_msgs
 )
 
-ament_export_targets(cbr_drone_lib HAS_LIBRARY_TARGET)
+ament_export_targets(drone_lib HAS_LIBRARY_TARGET)
 
 ament_export_dependencies(Eigen3 px4_msgs rclcpp tf2 cv_bridge custom_msgs)
  
@@ -69,8 +69,8 @@ install(
 )
  
 install(
-  TARGETS cbr_drone_lib
-  EXPORT cbr_drone_lib
+  TARGETS drone_lib
+  EXPORT drone_lib
   LIBRARY DESTINATION lib
   ARCHIVE DESTINATION lib
   RUNTIME DESTINATION bin
