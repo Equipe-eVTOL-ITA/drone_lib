@@ -37,6 +37,8 @@ include_directories(include)
 
 add_library(drone_lib SHARED
   src/Drone.cpp
+  src/movement.cpp
+  src/transformations.cpp
 )
 
 ament_target_dependencies(drone_lib
