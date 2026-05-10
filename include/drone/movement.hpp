@@ -22,6 +22,21 @@ void move_local_by_speed(std::shared_ptr<Drone> drone, Eigen::Vector3d direction
 
 void move_local_by_speed(std::shared_ptr<Drone> drone, float vx, float vy, float vz);
 
+/**
+ * Position-setpoint equivalent of move_local_by_speed.
+ *
+ * Instead of sending velocity setpoints (which the PX4 velocity controller
+ * executes open-loop with respect to external disturbances like wind), this
+ * function converts (vx, vy, vz) into a position target one FSM tick ahead
+ * (dt = 50 ms).  PX4's position controller then closes the loop using the
+ * EKF-estimated position, providing implicit wind compensation.
+ *
+ * The velocity vector is expressed in the drone body frame and is rotated
+ * into the NED world frame using the current yaw before being integrated —
+ * identical to what move_local_by_speed does internally.
+ */
+void move_local_by_vel_as_position(std::shared_ptr<Drone> drone, float vx, float vy, float vz = 0.0f);
+
 #include <limits>
 
 bool move_local_by_waypoint(std::shared_ptr<Drone> drone, Eigen::Vector3d waypoint, float speed, float tolerance = 0.1f, float target_yaw = std::numeric_limits<float>::quiet_NaN());
