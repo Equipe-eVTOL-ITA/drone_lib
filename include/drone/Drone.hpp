@@ -154,6 +154,15 @@ public:
 
 	void setLocalVelocity(float vx, float vy, float vz, float yaw_rate = 0.0f);
 
+	/// Mixed offboard setpoint: XY velocity control + Z position control simultaneously.
+	/// PX4 uses position[2] (position controller, PID) for altitude and
+	/// velocity[0..1] (velocity controller) for horizontal movement.
+	/// @param vx  Forward velocity  in FRD frame (m/s)
+	/// @param vy  Lateral velocity  in FRD frame (m/s)
+	/// @param z_ref  Altitude reference in FRD frame (same convention as setLocalPosition)
+	/// @param yaw  Yaw in FRD frame (initial_yaw_ is added internally)
+	void setMixedSetpoint(float vx, float vy, float z_ref, float yaw);
+
 	void setGroundSpeed(float speed);
 
 	void setAirSpeed(float speed);

@@ -553,6 +553,48 @@ void Drone::setLocalVelocity(float vx, float vy, float vz, float yaw_rate) {
 	this->vehicle_trajectory_setpoint_pub_->publish(msg);
 }
 
+void Drone::setMixedSetpoint(float vx, float vy, float z_ref, float yaw) {
+	// Publish OffboardControlMode with BOTH position=true and velocity=true.
+	// PX4 interprets TrajectorySetpoint fields selectively:
+	//   position[2] (non-NaN) → position controller (PID) handles altitude
+	//   velocity[0..1] (non-NaN) + position[0..1] (NaN) → velocity controller handles XY
+	px4_msgs::msg::OffboardControlMode ocm;
+	ocm.timestamp    = this->get_clock()->now().nanoseconds() / 1000;
+	ocm.position     = true;
+	ocm.velocity     = true;
+	ocm.acceleration = false;
+	ocm.attitude     = false;
+	ocm.body_rate    = false;
+	ocm.direct_actuator = false;
+	this->vehicle_offboard_control_mode_pub_->publish(ocm);
+
+	px4_msgs::msg::TrajectorySetpoint sp;
+	sp.timestamp = ocm.timestamp;
+
+	// Z: position setpoint in NED — only extract the z component after FRD→NED conversion.
+	const Eigen::Vector3d posNED = this->convertPositionFRDtoNED(
+		Eigen::Vector3d(0.0, 0.0, static_cast<double>(z_ref)));
+	sp.position[0] = std::numeric_limits<float>::quiet_NaN();  // XY position: not used
+	sp.position[1] = std::numeric_limits<float>::quiet_NaN();
+	sp.position[2] = static_cast<float>(posNED.z());           // Z position: active
+
+	// XY: velocity setpoints in NED — vz=0 in FRD so z velocity is NaN in setpoint.
+	const Eigen::Vector3d velNED = this->convertVelocityFRDtoNED(Eigen::Vector3d(vx, vy, 0.0));
+	sp.velocity[0] = static_cast<float>(velNED.x());           // XY velocity: active
+	sp.velocity[1] = static_cast<float>(velNED.y());
+	sp.velocity[2] = std::numeric_limits<float>::quiet_NaN();  // Z velocity: not used
+
+	// Yaw: position setpoint (same convention as setLocalPosition)
+	sp.yaw      = yaw + initial_yaw_;
+	sp.yawspeed = std::numeric_limits<float>::quiet_NaN();
+
+	sp.acceleration[0] = std::numeric_limits<float>::quiet_NaN();
+	sp.acceleration[1] = std::numeric_limits<float>::quiet_NaN();
+	sp.acceleration[2] = std::numeric_limits<float>::quiet_NaN();
+
+	this->vehicle_trajectory_setpoint_pub_->publish(sp);
+}
+
 void Drone::setGroundSpeed(float speed) {
 	this->setSpeed(speed, true);
 }
