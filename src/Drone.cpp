@@ -553,6 +553,11 @@ void Drone::setLocalVelocity(float vx, float vy, float vz, float yaw_rate) {
 	this->vehicle_trajectory_setpoint_pub_->publish(msg);
 }
 
+Eigen::Vector3d Drone::getLocalVelocity() {
+	return convertVelocityNEDtoFRD(
+		Eigen::Vector3d(current_vel_x_, current_vel_y_, current_vel_z_));
+}
+
 void Drone::setMixedSetpoint(float vx, float vy, float z_ref, float yaw) {
 	// Publish OffboardControlMode with BOTH position=true and velocity=true.
 	// PX4 interprets TrajectorySetpoint fields selectively:

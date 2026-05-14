@@ -119,6 +119,10 @@ public:
 
 	Eigen::Vector3d getLocalPosition();
 
+	/// Returns drone velocity in FRD frame (consistent with getLocalPosition()).
+	/// Internally converts NED velocity from vehicle_odometry using initial_yaw_.
+	Eigen::Vector3d getLocalVelocity();
+
 	float getAltitude();
 
 	float getGroundSpeed();
