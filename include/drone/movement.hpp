@@ -1,52 +1,91 @@
 #pragma once
 
 #include <Eigen/Eigen>
+#include <limits>
 #include <memory>
 #include "drone/Drone.hpp"
 
-// Type alias for direction vectors
-using Direction = Eigen::Vector3d;
-
-namespace Sentido {
-    extern const Direction FRENTE;
-    extern const Direction TRAS;
-    extern const Direction ESQUERDA;
-    extern const Direction DIREITA;
-    extern const Direction BAIXO;
-    extern const Direction CIMA;
-}
-
 float normalizeYawError(float yaw_error);
 
+// Envia velocity setpoint em FRD, rotacionado pelo yaw atual
 void move_local_by_speed(std::shared_ptr<Drone> drone, Eigen::Vector3d direction, float speed);
-
 void move_local_by_speed(std::shared_ptr<Drone> drone, float vx, float vy, float vz);
 
-/**
- * Position-setpoint equivalent of move_local_by_speed.
- *
- * Instead of sending velocity setpoints (which the PX4 velocity controller
- * executes open-loop with respect to external disturbances like wind), this
- * function converts (vx, vy, vz) into a position target one FSM tick ahead
- * (dt = 50 ms).  PX4's position controller then closes the loop using the
- * EKF-estimated position, providing implicit wind compensation.
- *
- * The velocity vector is expressed in the drone body frame and is rotated
- * into the NED world frame using the current yaw before being integrated —
- * identical to what move_local_by_speed does internally.
- */
+// Converte velocidade FRD em position setpoint 1 tick (50ms) à frente
 void move_local_by_vel_as_position(std::shared_ptr<Drone> drone, float vx, float vy, float vz = 0.0f);
 
-#include <limits>
+// ── Funções de waypoint ───────────────────────────────────────────────────────
 
-bool move_local_by_waypoint(std::shared_ptr<Drone> drone, Eigen::Vector3d waypoint, float speed, float tolerance = 0.1f, float target_yaw = std::numeric_limits<float>::quiet_NaN());
+/*
+ * Passo constante em direção ao waypoint — sem perfil de velocidade.
+ *
+ * Semântica idêntica ao antigo move_local_by_waypoint: posiciona o setpoint
+ * `step_m` metros à frente na direção do destino a cada tick do FSM.
+ * A velocidade efetiva depende do position controller do PX4.
+ *
+ * Use para: buscas em espiral/arco, seguimento contínuo de trajetória,
+ *           alvos recalculados a cada tick (SearchBall, SearchAruco, GoToBall).
+ *
+ * step_m = 0  →  segura a posição atual (hold).
+ * Retorna true quando dentro da tolerância (posição e yaw).
+ */
+bool move_local_constant_step(
+    std::shared_ptr<Drone> drone,
+    Eigen::Vector3d        waypoint,
+    float                  step_m,
+    float                  tolerance  = 0.10f,
+    float                  target_yaw = std::numeric_limits<float>::quiet_NaN());
 
-bool move_local_by_sentido(std::shared_ptr<Drone> drone, const Direction& sentido, 
-                          float distance, float speed, float tolerance = 0.1f, 
-                          bool with_timeout = false, float timeout_seconds = 10.0f);
+/*
+ * Perfil de velocidade trapezoidal para navegação ponto-a-ponto (stateful).
+ *
+ * Gera um perfil suave de aceleração/cruceiro/desaceleração:
+ *
+ *   v(m/s)
+ *    ↑
+ *    │        ___________
+ *    │       /           \
+ *    │      /  (cruise)   \
+ *    │_____/               \____
+ *    └──────────────────────────→ t
+ *         acc           dec
+ *
+ * A desaceleração é calculada online pela restrição cinemática:
+ *   v_brake = sqrt(2 · a_max · dist_restante)
+ * garantindo que o drone sempre pare dentro da tolerância sem ultrapassar o goal.
+ *
+ * Deve ser instanciado como membro do estado FSM:
+ *   - Chame reset() em on_enter() para partir do repouso.
+ *   - Chame update() uma vez por tick em act().
+ *
+ * Use para: GoToBase, GoTo, DescendForShape, navegação ponto-a-ponto.
+ */
+class TrapezoidalMover {
+public:
+    TrapezoidalMover() : v_curr_(0.0f) {}
 
-bool rotateYaw(std::shared_ptr<Drone> drone, float target_yaw, float yaw_rate = 0.3f, float tolerance = 0.05f);
+    // Reinicia a partir do repouso — chamar em on_enter()
+    void reset() { v_curr_ = 0.0f; }
 
-bool rotateAngle(std::shared_ptr<Drone> drone, float angle, float yaw_rate = 0.3f, float tolerance = 0.05f);
+    // Executa um tick do perfil. Retorna true quando o waypoint foi atingido.
+    bool update(std::shared_ptr<Drone> drone,
+                Eigen::Vector3d        waypoint,
+                float                  v_max,          // m/s
+                float                  a_max,          // m/s²
+                float                  tolerance  = 0.10f,
+                float                  target_yaw = std::numeric_limits<float>::quiet_NaN());
 
-bool lookToPoint(std::shared_ptr<Drone> drone, Eigen::Vector3d goal_point, float yaw_rate = 0.3f, float tolerance = 0.05f);
+    float currentVelocity() const { return v_curr_; }
+
+private:
+    // kDt: período do FSM — usado APENAS para integrar ∆v (filtro trapezoidal)
+    static constexpr float kDt = 0.05f;
+
+    // kLookahead: distância do setpoint = v_curr × kLookahead.
+    // Deve ser ≈ 1/MPC_XY_P do PX4 (default MPC_XY_P=0.95 → kLookahead≈1.0).
+    // Se kLookahead=kDt (0.05), o setpoint ficaria apenas 0.025m à frente a
+    // 0.5 m/s, fazendo o PX4 voar a 0.024 m/s em vez de 0.5 m/s.
+    static constexpr float kLookahead = 1.0f;
+
+    float v_curr_;
+};

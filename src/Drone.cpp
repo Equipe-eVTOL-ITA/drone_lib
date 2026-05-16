@@ -583,8 +583,16 @@ void Drone::setMixedSetpoint(float vx, float vy, float z_ref, float yaw) {
 	sp.position[1] = std::numeric_limits<float>::quiet_NaN();
 	sp.position[2] = static_cast<float>(posNED.z());           // Z position: active
 
-	// XY: velocity setpoints in NED — vz=0 in FRD so z velocity is NaN in setpoint.
-	const Eigen::Vector3d velNED = this->convertVelocityFRDtoNED(Eigen::Vector3d(vx, vy, 0.0));
+	// XY: velocity setpoints in NED using the FULL current yaw (not just initial_yaw_).
+	// convertVelocityFRDtoNED rotates only by initial_yaw_, missing any subsequent yaw
+	// changes (e.g. after Phase 2 yaw alignment in MangueiraAlignState). Using yaw_
+	// (absolute NED heading) ensures the velocity direction is always correct.
+	const double cur_yaw = this->yaw_;
+	Eigen::Matrix3d yaw_rot;
+	yaw_rot << std::cos(cur_yaw), -std::sin(cur_yaw), 0,
+	           std::sin(cur_yaw),  std::cos(cur_yaw), 0,
+	           0, 0, 1;
+	const Eigen::Vector3d velNED = yaw_rot * Eigen::Vector3d(vx, vy, 0.0);
 	sp.velocity[0] = static_cast<float>(velNED.x());           // XY velocity: active
 	sp.velocity[1] = static_cast<float>(velNED.y());
 	sp.velocity[2] = std::numeric_limits<float>::quiet_NaN();  // Z velocity: not used
