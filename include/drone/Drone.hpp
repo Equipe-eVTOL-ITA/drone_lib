@@ -7,6 +7,7 @@
 #include <limits>
 #include <memory>
 #include <string>
+#include <thread>
 #include <vector>
 
 #include <rclcpp/rclcpp.hpp>
@@ -217,7 +218,13 @@ private:
 	/// \param[in] speed Speed to set in m/s
 	/// \param[in] is_ground_speed True if the speed is a ground speed, false if it is an air speed
 	void setSpeed(float speed, bool is_ground_speed);
-	
+
+	void destroy();
+
+	// Exclusive executor for the Drone node (mirrors old_Drone behaviour).
+	std::shared_ptr<rclcpp::executors::MultiThreadedExecutor> exec_;
+	std::thread spin_thread_;
+
 	rclcpp::Subscription<px4_msgs::msg::VehicleStatus>::SharedPtr vehicle_status_sub_;
 		
 	rclcpp::Subscription<px4_msgs::msg::TimesyncStatus>::SharedPtr vehicle_timesync_sub_;

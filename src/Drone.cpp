@@ -14,6 +14,14 @@
 
 Drone::Drone() : Node("Drone") {
 
+	this->exec_ = std::make_shared<rclcpp::executors::MultiThreadedExecutor>();
+	this->exec_->add_node(this->get_node_base_interface());
+	this->spin_thread_ = std::thread(
+		[this]() {
+			this->exec_->spin();
+		}
+	);
+
 	rclcpp::QoS px4_qos(5);
 	px4_qos.best_effort();
 	px4_qos.durability(rclcpp::DurabilityPolicy::TransientLocal);
@@ -336,7 +344,23 @@ Drone::Drone() : Node("Drone") {
 
 }
 
-Drone::~Drone(){}
+Drone::~Drone() {
+	this->destroy();
+}
+
+void Drone::destroy()
+{
+	if (this->exec_) {
+		for (int i = 0; i < 42; i++) {
+			this->exec_->cancel();
+			usleep(100);
+		}
+		this->exec_ = nullptr;
+		if (this->spin_thread_.joinable()) {
+			this->spin_thread_.join();
+		}
+	}
+}
 
 DronePX4::ARMING_STATE Drone::getArmingState() {
 	return this->arming_state_;
