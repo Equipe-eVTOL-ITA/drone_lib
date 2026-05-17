@@ -24,7 +24,7 @@ Drone::Drone() : Node("Drone") {
 
 	rclcpp::QoS px4_qos(5);
 	px4_qos.best_effort();
-	px4_qos.durability(rclcpp::DurabilityPolicy::TransientLocal);
+	px4_qos.durability(rclcpp::DurabilityPolicy::Volatile);  // PX4 micro-XRCE expects Volatile
 
 	rclcpp::QoS custom_qos(5); // position qos
 	custom_qos.best_effort();
@@ -33,10 +33,6 @@ Drone::Drone() : Node("Drone") {
 	rclcpp::QoS telemetry_qos(10); // telemetry logs and status
 	telemetry_qos.best_effort();
 	telemetry_qos.durability(rclcpp::DurabilityPolicy::Volatile);
-
-	rclcpp::QoS gesture_qos(10);
-	gesture_qos.best_effort();
-	gesture_qos.durability(rclcpp::DurabilityPolicy::Volatile);
 
 	std::string vehicle_id_prefix = "";
 
@@ -227,6 +223,7 @@ Drone::Drone() : Node("Drone") {
 			this->current_vel_x_ = msg->velocity[0];
 			this->current_vel_y_ = msg->velocity[1];
 			this->current_vel_z_ = msg->velocity[2];
+			this->odom_received_.store(true);
 
 			// if the quaternion is valid, extract the euler angles for convenience
 			if (msg->q[0] != NAN) {
@@ -313,29 +310,6 @@ Drone::Drone() : Node("Drone") {
 			this->battery_voltage_ = msg->voltage_filtered_v;
 		});
 
-	this->gesture_sub_ = this->create_subscription<custom_msgs::msg::Gesture>(
-		"/gesture/classification",
-		gesture_qos,
-		[this](custom_msgs::msg::Gesture::SharedPtr msg) {
-			this->gestures_ = msg->gestures;
-		// Debug logging
-        std::string debug = "Received gestures: [";
-        for (size_t i = 0; i < this->gestures_.size(); ++i) {
-            debug += "'" + this->gestures_[i] + "'";
-            if (i < this->gestures_.size() - 1) debug += ", ";
-        }
-        debug += "]";
-        RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 1000, debug.c_str());
-		}
-		);
-
-	this->hand_location_sub_ = this->create_subscription<custom_msgs::msg::HandLocation>(
-		"/gesture/hand_location",
-		gesture_qos,
-		[this](custom_msgs::msg::HandLocation::ConstSharedPtr msg) {
-			this->hand_location_x_ = msg->hand_x;
-			this->hand_location_y_ = msg->hand_y;
-		});
 	
 	// Status publisher timer (2Hz)
 	this->status_timer_ = this->create_wall_timer(
@@ -665,6 +639,13 @@ void Drone::setOffboardControlMode(DronePX4::CONTROLLER_TYPE type) {
 }
 
 void Drone::toOffboardSync() {
+	// CRITICAL: wait for first odometry so current_pos_x/y/z are valid.
+	// Without this, the 20 setpoints below tell PX4 "hold at (0,0,0) NED"
+	// even though the drone is physically elsewhere.
+	if (!odom_received_.load()) {
+		this->log("WARN: toOffboardSync called before odometry — waiting up to 3s");
+		waitForOdometry(3.0);
+	}
 	for (int i = 0; i < 20; i++) {
 		setLocalPosition(
 			current_pos_x_,
@@ -708,8 +689,26 @@ void Drone::toPositionSync() {
 	}
 }
 
+bool Drone::waitForOdometry(double timeout_sec) {
+	auto deadline = std::chrono::steady_clock::now()
+	              + std::chrono::milliseconds(static_cast<int>(timeout_sec * 1000));
+	while (!odom_received_.load() && rclcpp::ok()
+	       && std::chrono::steady_clock::now() < deadline) {
+		usleep(20000);  // 20 ms
+	}
+	if (!odom_received_.load()) {
+		this->log("ERROR: waitForOdometry timeout — no /fmu/out/vehicle_odometry received");
+		return false;
+	}
+	return true;
+}
+
 void Drone::setHomePosition(const Eigen::Vector3d& fictual_home) {
 	// Variables for Coordinate Systems transformations
+	if (!odom_received_.load()) {
+		this->log("WARN: setHomePosition called before odometry — waiting up to 3s");
+		waitForOdometry(3.0);
+	}
 	this->frd_home_position_ = fictual_home;
 	this->ned_home_position_ = Eigen::Vector3d({current_pos_x_, current_pos_y_, current_pos_z_});
 	this->initial_yaw_ = yaw_;

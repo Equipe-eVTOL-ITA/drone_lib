@@ -2,6 +2,7 @@
 #define DRONE_HPP_
 
 #include <array>
+#include <atomic>
 #include <chrono>
 #include <cstdint>
 #include <limits>
@@ -179,6 +180,12 @@ public:
 	void toPositionSync();
 
 	void setHomePosition(const Eigen::Vector3d& fictual_home);
+
+	/// Blocks until the first valid VehicleOdometry message has been received,
+	/// or `timeout_sec` elapses. Returns true if odometry was received.
+	/// MUST be called before setHomePosition() / toOffboardSync() to avoid
+	/// capturing uninitialized (0,0,0) position values.
+	bool waitForOdometry(double timeout_sec = 5.0);
 	
 	void setOffboardMode();
 
@@ -264,6 +271,7 @@ private:
 
 	float current_speed;
 	std::chrono::time_point<std::chrono::high_resolution_clock> odom_timestamp_;
+	std::atomic<bool> odom_received_{false};
 	float current_pos_x_{0};
 	float current_pos_y_{0};
 	float current_pos_z_{0};
