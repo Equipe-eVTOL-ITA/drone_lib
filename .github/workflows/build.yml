@@ -22,8 +22,9 @@ on:
   pull_request:
   workflow_dispatch:
 
-env:
-  PACKAGE: drone_lib   # o pacote colcon deste repositório
+# Sem variável de pacote: os pacotes deste repositório são descobertos com
+# `colcon list`. Assim o mesmo arquivo serve a repositórios de um pacote só
+# (drone_lib, stdstates) e a repositórios com vários (fsm, cv_nodes).
 
 jobs:
   build:
@@ -82,7 +83,10 @@ jobs:
         shell: bash
         run: |
           source /opt/ros/${{ matrix.distro }}/setup.bash
-          colcon build --packages-up-to "$PACKAGE" \
+          pkgs=$(colcon list --names-only --base-paths "src/${{ github.event.repository.name }}" | tr '\n' ' ')
+          echo "Pacotes deste repositório: $pkgs"
+          [ -n "$pkgs" ] || { echo "::error::nenhum pacote colcon encontrado"; exit 1; }
+          colcon build --packages-up-to $pkgs \
             --event-handlers console_direct+ \
             --cmake-args -DCMAKE_BUILD_TYPE=RelWithDebInfo
 
@@ -141,6 +145,7 @@ jobs:
         shell: bash
         run: |
           source /opt/ros/humble/setup.bash
-          colcon build --packages-up-to "$PACKAGE"
-          colcon test --packages-select "$PACKAGE"
+          pkgs=$(colcon list --names-only --base-paths "src/${{ github.event.repository.name }}" | tr '\n' ' ')
+          colcon build --packages-up-to $pkgs
+          colcon test --packages-select $pkgs
           colcon test-result --verbose
