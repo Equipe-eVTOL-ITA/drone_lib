@@ -9,6 +9,12 @@
 
   <buildtool_depend>ament_cmake</buildtool_depend>
 
+  <!-- Fornece o FindEigen3.cmake usado pelo find_package(Eigen3) do
+       CMakeLists. Estava sendo usado sem ser declarado: funcionava na
+       maquina de quem ja tinha o pacote por outra via, e falhava numa
+       instalacao limpa. -->
+  <buildtool_depend>eigen3_cmake_module</buildtool_depend>
+
   <depend>rclcpp</depend>
   <depend>px4_msgs</depend>
   <depend>tf2</depend>
