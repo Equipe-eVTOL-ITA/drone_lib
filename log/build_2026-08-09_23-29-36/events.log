@@ -1,0 +1,49 @@
+[0.000000] (-) TimerEvent: {}
+[0.000149] (drone_lib) JobQueued: {'identifier': 'drone_lib', 'dependencies': OrderedDict()}
+[0.000346] (drone_lib) JobStarted: {'identifier': 'drone_lib'}
+[0.004965] (drone_lib) JobProgress: {'identifier': 'drone_lib', 'progress': 'cmake'}
+[0.005404] (drone_lib) Command: {'cmd': ['/usr/bin/cmake', '/home/marconipavan/evtol/dev/src/drone_lib', '-DCMAKE_INSTALL_PREFIX=/home/marconipavan/evtol/dev/src/drone_lib/install/drone_lib'], 'cwd': '/home/marconipavan/evtol/dev/src/drone_lib/build/drone_lib', 'env': OrderedDict([('GJS_DEBUG_TOPICS', 'JS ERROR;JS LOG'), ('LESSOPEN', '| /usr/bin/lesspipe %s'), ('VSCODE_CWD', '/home/marconipavan'), ('VSCODE_ESM_ENTRYPOINT', 'vs/workbench/api/node/extensionHostProcess'), ('AI_AGENT', 'claude-code_2-1-226_agent'), ('USER', 'marconipavan'), ('CLAUDE_CODE_ENTRYPOINT', 'claude-vscode'), ('VSCODE_NLS_CONFIG', '{"userLocale":"en-us","osLocale":"en-us","resolvedLanguage":"en","defaultMessagesFile":"/usr/share/code/resources/app/out/nls.messages.json","locale":"en-us","availableLanguages":{}}'), ('GIT_EDITOR', 'true'), ('VSCODE_HANDLES_UNCAUGHT_ERRORS', 'true'), ('XDG_SESSION_TYPE', 'x11'), ('CLAUDE_AGENT_SDK_VERSION', '0.3.226'), ('SHLVL', '0'), ('LD_LIBRARY_PATH', '/opt/ros/humble/opt/rviz_ogre_vendor/lib:/opt/ros/humble/lib/x86_64-linux-gnu:/opt/ros/humble/lib'), ('HOME', '/home/marconipavan'), ('CHROME_DESKTOP', 'code.desktop'), ('OLDPWD', '/home/marconipavan/evtol/dev'), ('DESKTOP_SESSION', 'ubuntu'), ('NVM_BIN', '/home/marconipavan/.nvm/versions/node/v24.11.0/bin'), ('NVM_INC', '/home/marconipavan/.nvm/versions/node/v24.11.0/include/node'), ('VSCODE_IPC_HOOK', '/run/user/1000/vscode-1de0b0c7-1.10-main.sock'), ('GIO_LAUNCHED_DESKTOP_FILE', '/usr/share/applications/code.desktop'), ('ROS_PYTHON_VERSION', '3'), ('GNOME_SHELL_SESSION_MODE', 'ubuntu'), ('GTK_MODULES', 'gail:atk-bridge'), ('CLAUDE_CODE_CHILD_SESSION', '1'), ('MANAGERPID', '2295'), ('SYSTEMD_EXEC_PID', '2610'), ('DBUS_SESSION_BUS_ADDRESS', 'unix:path=/run/user/1000/bus'), ('GIO_LAUNCHED_DESKTOP_FILE_PID', '78961'), ('NVM_DIR', '/home/marconipavan/.nvm'), ('VSCODE_CRASH_REPORTER_PROCESS_TYPE', 'extensionHost'), ('APPLICATION_INSIGHTS_NO_STATSBEAT', 'true'), ('ROS_DISTRO', 'humble'), ('GTK_IM_MODULE', 'ibus'), ('LOGNAME', 'marconipavan'), ('JOURNAL_STREAM', '8:14250'), ('_', '/usr/bin/colcon'), ('ROS_VERSION', '2'), ('XDG_SESSION_CLASS', 'user'), ('USERNAME', 'marconipavan'), ('GNOME_DESKTOP_SESSION_ID', 'this-is-deprecated'), ('ROS_LOCALHOST_ONLY', '0'), ('WINDOWPATH', '2'), ('MCP_CONNECTION_NONBLOCKING', 'true'), ('PATH', '/opt/gcc-arm-none-eabi-9-2020-q2-update/bin:/home/marconipavan/.local/bin:/home/marconipavan/opt/xcrysden-1.6.2-bin-shared:/opt/gcc-arm-none-eabi-9-2020-q2-update/bin:/home/marconipavan/.local/bin:/home/marconipavan/opt/xcrysden-1.6.2-bin-shared:/home/marconipavan/.nvm/versions/node/v24.11.0/bin:/opt/ros/humble/bin:/home/marconipavan/.juliaup/bin:/opt/gcc-arm-none-eabi-9-2020-q2-update/bin:/home/marconipavan/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin:/snap/bin'), ('SESSION_MANAGER', 'local/marconipavan:@/tmp/.ICE-unix/2583,unix/marconipavan:/tmp/.ICE-unix/2583'), ('INVOCATION_ID', 'b93718efdc084a8b921ba02f556f4579'), ('COREPACK_ENABLE_AUTO_PIN', '0'), ('XDG_MENU_PREFIX', 'gnome-'), ('XDG_RUNTIME_DIR', '/run/user/1000'), ('GDK_BACKEND', 'x11'), ('CLAUDE_EFFORT', 'high'), ('DISPLAY', ':1'), ('CLAUDE_PID', '80841'), ('NoDefaultCurrentDirectoryInExePath', '1'), ('LANG', 'en_US.UTF-8'), ('XDG_CURRENT_DESKTOP', 'Unity'), ('XMODIFIERS', '@im=ibus'), ('XDG_SESSION_DESKTOP', 'ubuntu'), ('XAUTHORITY', '/run/user/1000/gdm/Xauthority'), ('SSH_AGENT_LAUNCHER', 'gnome-keyring'), ('SSH_AUTH_SOCK', '/run/user/1000/keyring/ssh'), ('AMENT_PREFIX_PATH', '/opt/ros/humble'), ('ORIGINAL_XDG_CURRENT_DESKTOP', 'ubuntu:GNOME'), ('SHELL', '/bin/bash'), ('QT_ACCESSIBILITY', '1'), ('ELECTRON_RUN_AS_NODE', '1'), ('GDMSESSION', 'ubuntu'), ('CLAUDE_CODE_ENABLE_SDK_FILE_CHECKPOINTING', 'true'), ('CLAUDE_CODE_SESSION_ID', '087fc5e8-aeb9-4d0c-8b2b-db88636d5ba0'), ('LESSCLOSE', '/usr/bin/lesspipe %s %s'), ('CLAUDECODE', '1'), ('GPG_AGENT_INFO', '/run/user/1000/gnupg/S.gpg-agent:0:1'), ('GJS_DEBUG_OUTPUT', 'stderr'), ('QT_IM_MODULE', 'ibus'), ('PWD', '/home/marconipavan/evtol/dev/src/drone_lib/build/drone_lib'), ('LC_ALL', 'en_US.UTF-8'), ('XDG_CONFIG_DIRS', '/etc/xdg/xdg-ubuntu:/etc/xdg'), ('VSCODE_CODE_CACHE_PATH', '/home/marconipavan/.config/Code/CachedData/385651c938df8a906869babee516bffd0ddb9829'), ('XDG_DATA_DIRS', '/usr/share/ubuntu:/usr/share/gnome:/usr/local/share/:/usr/share/:/var/lib/snapd/desktop'), ('CLAUDE_CODE_EXECPATH', '/home/marconipavan/.vscode/extensions/anthropic.claude-code-2.1.226-linux-x64/resources/native-binary/claude'), ('PYTHONPATH', '/opt/ros/humble/lib/python3.10/site-packages:/opt/ros/humble/local/lib/python3.10/dist-packages'), ('CLAUDE_CODE_ENABLE_TASKS', '0'), ('COLCON', '1'), ('CLAUDE_CODE_MESSAGING_SOCKET', '/run/user/1000/cc-socks/80841.sock'), ('VSCODE_PID', '78961'), ('CMAKE_PREFIX_PATH', '/opt/ros/humble')]), 'shell': False}
+[0.095254] (drone_lib) StdoutLine: {'line': b'-- The C compiler identification is GNU 11.4.0\n'}
+[0.099866] (-) TimerEvent: {}
+[0.139136] (drone_lib) StdoutLine: {'line': b'-- The CXX compiler identification is GNU 11.4.0\n'}
+[0.144316] (drone_lib) StdoutLine: {'line': b'-- Detecting C compiler ABI info\n'}
+[0.193198] (drone_lib) StdoutLine: {'line': b'-- Detecting C compiler ABI info - done\n'}
+[0.199679] (drone_lib) StdoutLine: {'line': b'-- Check for working C compiler: /usr/bin/cc - skipped\n'}
+[0.199914] (-) TimerEvent: {}
+[0.199985] (drone_lib) StdoutLine: {'line': b'-- Detecting C compile features\n'}
+[0.201720] (drone_lib) StdoutLine: {'line': b'-- Detecting C compile features - done\n'}
+[0.204738] (drone_lib) StdoutLine: {'line': b'-- Detecting CXX compiler ABI info\n'}
+[0.260845] (drone_lib) StdoutLine: {'line': b'-- Detecting CXX compiler ABI info - done\n'}
+[0.265114] (drone_lib) StdoutLine: {'line': b'-- Check for working CXX compiler: /usr/bin/c++ - skipped\n'}
+[0.265246] (drone_lib) StdoutLine: {'line': b'-- Detecting CXX compile features\n'}
+[0.265443] (drone_lib) StdoutLine: {'line': b'-- Detecting CXX compile features - done\n'}
+[0.275672] (drone_lib) StdoutLine: {'line': b'-- Found ament_cmake: 1.3.12 (/opt/ros/humble/share/ament_cmake/cmake)\n'}
+[0.300029] (-) TimerEvent: {}
+[0.400205] (-) TimerEvent: {}
+[0.500378] (-) TimerEvent: {}
+[0.520556] (drone_lib) StdoutLine: {'line': b'-- Found Python3: /usr/bin/python3 (found version "3.10.12") found components: Interpreter \n'}
+[0.575227] (drone_lib) StdoutLine: {'line': b'-- Found eigen3_cmake_module: 0.1.1 (/opt/ros/humble/share/eigen3_cmake_module/cmake)\n'}
+[0.579388] (drone_lib) StdoutLine: {'line': b'-- Found Eigen3: TRUE (found version "3.4.0") \n'}
+[0.585235] (drone_lib) StderrLine: {'line': b'CMake Error at CMakeLists.txt:12 (find_package):\n'}
+[0.585424] (drone_lib) StderrLine: {'line': b'  By not providing "Findpx4_msgs.cmake" in CMAKE_MODULE_PATH this project has\n'}
+[0.585527] (drone_lib) StderrLine: {'line': b'  asked CMake to find a package configuration file provided by "px4_msgs",\n'}
+[0.585596] (drone_lib) StderrLine: {'line': b'  but CMake did not find one.\n'}
+[0.585659] (drone_lib) StderrLine: {'line': b'\n'}
+[0.585724] (drone_lib) StderrLine: {'line': b'  Could not find a package configuration file provided by "px4_msgs" with any\n'}
+[0.585786] (drone_lib) StderrLine: {'line': b'  of the following names:\n'}
+[0.585843] (drone_lib) StderrLine: {'line': b'\n'}
+[0.585897] (drone_lib) StderrLine: {'line': b'    px4_msgsConfig.cmake\n'}
+[0.585951] (drone_lib) StderrLine: {'line': b'    px4_msgs-config.cmake\n'}
+[0.586009] (drone_lib) StderrLine: {'line': b'\n'}
+[0.586063] (drone_lib) StderrLine: {'line': b'  Add the installation prefix of "px4_msgs" to CMAKE_PREFIX_PATH or set\n'}
+[0.586116] (drone_lib) StderrLine: {'line': b'  "px4_msgs_DIR" to a directory containing one of the above files.  If\n'}
+[0.586170] (drone_lib) StderrLine: {'line': b'  "px4_msgs" provides a separate development package or SDK, be sure it has\n'}
+[0.586224] (drone_lib) StderrLine: {'line': b'  been installed.\n'}
+[0.586285] (drone_lib) StderrLine: {'line': b'\n'}
+[0.586341] (drone_lib) StderrLine: {'line': b'\n'}
+[0.586395] (drone_lib) StdoutLine: {'line': b'-- Configuring incomplete, errors occurred!\n'}
+[0.586468] (drone_lib) StdoutLine: {'line': b'See also "/home/marconipavan/evtol/dev/src/drone_lib/build/drone_lib/CMakeFiles/CMakeOutput.log".\n'}
+[0.587626] (drone_lib) CommandEnded: {'returncode': 1}
+[0.600611] (-) TimerEvent: {}
+[0.601189] (drone_lib) JobEnded: {'identifier': 'drone_lib', 'rc': 1}
+[0.601512] (-) EventReactorShutdown: {}

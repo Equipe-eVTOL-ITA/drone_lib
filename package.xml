@@ -18,7 +18,12 @@
   <depend>rclcpp</depend>
   <depend>px4_msgs</depend>
   <depend>tf2</depend>
-  <depend>Eigen3</depend>
+  <!-- Chave do ROSDEP, nao o nome do pacote CMake. `Eigen3` (que estava
+       aqui) nao existe no indice do rosdep; o `rosdep install` falhava com
+       "Cannot locate rosdep definition for [Eigen3]". Funcionava so onde
+       o Eigen ja tinha vindo por outra via. O find_package(Eigen3) do
+       CMakeLists continua igual: sao espacos de nomes diferentes. -->
+  <depend>eigen</depend>
   <depend>custom_msgs</depend>
   <depend>geometry_msgs</depend>
   <depend>nav_msgs</depend>
