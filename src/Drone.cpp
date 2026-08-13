@@ -778,20 +778,6 @@ void Drone::log(const std::string &info) {
 	log_pub_->publish(log_msg);
 }
 
-std::vector<std::string> Drone::getHandGestures() {
-	return gestures_;
-}
-
-std::array<float, 2> Drone::getHandLocation() {
-	return {hand_location_x_, hand_location_y_};
-}
-
-void Drone::resetHands() {
-	hand_location_x_ = 0.5f;
-	hand_location_y_ = 0.5f;
-	gestures_.assign(2, "");
-}
-
 void Drone::publishDroneStatus() {
 	auto status_msg = custom_msgs::msg::DroneStatus();
 	status_msg.header.stamp = this->get_clock()->now();

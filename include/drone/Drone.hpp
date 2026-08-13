@@ -15,8 +15,6 @@
 #include <custom_msgs/msg/position.hpp>
 #include <custom_msgs/msg/log_message.hpp>
 #include <custom_msgs/msg/drone_status.hpp>
-#include <custom_msgs/msg/gesture.hpp>
-#include <custom_msgs/msg/hand_location.hpp>
 
 #include <px4_msgs/msg/vehicle_status.hpp>
 #include <px4_msgs/msg/vehicle_command.hpp>
@@ -193,9 +191,20 @@ public:
 
 	void log(const std::string& info);
 
-	std::vector<std::string> getHandGestures();
-	std::array<float, 2> getHandLocation();
-	void resetHands();
+	// A API DE GESTOS FOI REMOVIDA. Se voce chegou aqui procurando
+	// getHandGestures(), getHandLocation() ou resetHands(), leia:
+	//
+	// Elas existiam, mas NAO FUNCIONAVAM. As inscricoes nos topicos de gesto
+	// eram declaradas neste header e nunca criadas no Drone.cpp -- as chamadas
+	// create_subscription se perderam entre 2025 e 2026. Na pratica
+	// getHandGestures() devolvia {"", ""} e getHandLocation() devolvia
+	// {0.5, 0.5} para sempre. Uma missao construida sobre elas compilaria,
+	// subiria e nunca veria um gesto.
+	//
+	// Alem disso, o lugar estava errado: esta classe e a abstracao do PX4, e
+	// nao deveria saber o que e uma mao. Em 2026 a leitura de visao mora num no
+	// da missao, que assina os topicos com mutex e publica na blackboard --
+	// veja VisionFase1 na cbr2026 e GestureFase3 na fase 3.
 
 
 private:
@@ -258,9 +267,6 @@ private:
 	rclcpp::Publisher<custom_msgs::msg::DroneStatus>::SharedPtr drone_status_pub_;
 	rclcpp::TimerBase::SharedPtr status_timer_;
 
-	rclcpp::Subscription<custom_msgs::msg::Gesture>::SharedPtr gesture_sub_;
-	rclcpp::Subscription<custom_msgs::msg::HandLocation>::SharedPtr hand_location_sub_;
-
 	DronePX4::ARMING_STATE arming_state_{DronePX4::ARMING_STATE::DISARMED};
 	DronePX4::FLIGHT_MODE flight_mode_{DronePX4::FLIGHT_MODE::UNKNOWN_MODE};
 	DronePX4::ARM_DISARM_REASON arm_reason_;
@@ -281,10 +287,6 @@ private:
 	float ground_speed_{0};
 	float airspeed_{0};
 	float battery_voltage_{0.0f};
-
-	std::vector<std::string> gestures_{"", ""};
-	float hand_location_x_{0.5f};
-	float hand_location_y_{0.5f};
 
 	uint8_t target_component_{1};
 	uint8_t source_system_{255};
