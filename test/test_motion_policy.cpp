@@ -1,22 +1,8 @@
 // Testes da politica de movimento.
 //
-// POR QUE ESTE ARQUIVO EXISTE
-//
-// O drone_lib e o pacote mais critico do workspace -- e a fronteira com o PX4,
-// e todo comando que chega ao drone passa por ele -- e nao tinha um teste
-// sequer. A razao era boa: a classe `Drone` e um rclcpp::Node que gira o
-// proprio executor numa thread, e testar qualquer coisa que a toque exige
-// subir ROS.
-//
-// A MotionPolicy contorna isso separando a DECISAO da PUBLICACAO. O
-// `decidir()` e uma funcao de (pose, alvo, limites) para um setpoint, sem ROS
-// e sem efeito colateral -- e e nele que mora a garantia que a camada existe
-// para dar.
-//
-// A GARANTIA, dita de uma vez: com a politica axial, o drone nunca recebe um
-// comando que o desloque de lado. Se algum dia a regra da competicao mudar
-// para "so pode girar 90 graus e andar para frente", e este teste passar, a
-// resposta e uma linha de YAML.
+// A garantia: com a politica axial o drone nunca recebe um comando que o
+// desloque de lado. Testavel sem ROS porque decidir() e uma funcao pura de
+// (pose, alvo, limites) para um setpoint.
 
 #include <cmath>
 #include <memory>
@@ -34,11 +20,8 @@ using drone::normalizarAngulo;
 namespace
 {
 
-/// Quanto o comando desloca o drone PARA O LADO, em metros.
-///
-/// Projeta o deslocamento comandado no eixo perpendicular a proa ATUAL. E essa
-/// a definicao de "andar de lado": sair do lugar numa direcao que nao e aquela
-/// para onde o drone aponta.
+/// Deslocamento comandado projetado no eixo perpendicular a proa atual --
+/// que e a definicao de "andar de lado".
 double deslocamentoLateral(const Pose & pose, const Comando & c)
 {
   const double dx = c.posicao.x() - pose.posicao.x();
@@ -65,9 +48,8 @@ TEST(Axial, NuncaComandaDeslocamentoLateral)
   lim.posicao = 0.10;
   lim.yaw = 0.05;
 
-  // Varre destinos em todas as direcoes e proas iniciais em todas as direcoes.
-  // O caso que mais importa e o pior: destino exatamente a 90 graus da proa --
-  // que e onde uma politica holonomica produziria puro deslocamento lateral.
+  // 16 proas x 16 rumos. O pior caso -- destino a 90 graus da proa -- e onde
+  // a holonomica produziria puro deslocamento lateral.
   int amostras = 0;
   for (int i = 0; i < 16; ++i) {
     const double proa = -M_PI + i * (2.0 * M_PI / 16.0);
@@ -106,13 +88,7 @@ TEST(Axial, NuncaComandaDeslocamentoLateral)
         }
       }
 
-      // A OUTRA METADE DO INVARIANTE.
-      //
-      // "Nunca anda de lado" e trivial de satisfazer: uma politica que nunca
-      // sai do lugar passa. Sem esta assercao, o teste acima daria verde para
-      // uma implementacao completamente quebrada -- e teria dado, porque a
-      // versao anterior deste laco apenas parava no fim dos ticks sem
-      // conferir nada.
+      // A outra metade: "nunca anda de lado" e trivial de satisfazer parado.
       EXPECT_TRUE(chegou)
         << "nao convergiu: proa=" << proa << " rumo=" << rumo
         << " parou a " << (alvo - pose.posicao).head<2>().norm() << " m do alvo";
@@ -123,8 +99,7 @@ TEST(Axial, NuncaComandaDeslocamentoLateral)
 
 TEST(Axial, AndaParaFrenteAteChegar)
 {
-  // Convergencia num caso unico e legivel, para quando o teste varrido acima
-  // falhar e alguem precisar de um ponto de partida menor.
+  // Caso unico e legivel, para quando o teste varrido acima falhar.
   auto politica = criarPolitica("axial");
   Limites lim;
   lim.posicao = 0.10;
@@ -155,8 +130,7 @@ TEST(Axial, AndaParaFrenteAteChegar)
 
   EXPECT_TRUE(chegou);
   EXPECT_NEAR((alvo - pose.posicao).head<2>().norm(), 0.0, lim.posicao);
-  // O caminho e quase a reta: gira primeiro, depois vai direto. Uma politica
-  // que fizesse voltas para chegar tambem "nunca andaria de lado".
+  // Uma politica que desse voltas tambem "nunca andaria de lado".
   EXPECT_LT(percorrido, 5.0 * 1.15) << "o caminho deveria ser quase a reta de 5 m";
 }
 
@@ -183,10 +157,8 @@ TEST(Axial, GiraParadoAntesDeAvancar)
 
 TEST(Axial, VoltaAGirarSeORumoSaiDaTolerancia)
 {
-  // E o que torna a garantia estrutural. O MovimentoAxial da fase4 nao fazia
-  // isso: uma vez em "avancando", ele comandava o destino aconteca o que
-  // acontecer -- e um destino recalculado para o lado virava deslocamento
-  // lateral, justamente o que a classe existia para impedir.
+  // A reentrada e o que torna a garantia estrutural: o MovimentoAxial da
+  // fase4 nao a tinha, e um destino recalculado para o lado virava strafe.
   auto politica = criarPolitica("axial");
   Limites lim;
   lim.yaw = 0.05;
@@ -210,9 +182,7 @@ TEST(Axial, VoltaAGirarSeORumoSaiDaTolerancia)
 
 TEST(Axial, DeclaraQueNaoAceitaCorrecaoLateral)
 {
-  // Os estados de alinhamento fino perguntam isto antes de comandar uma
-  // correcao de centimetros. Responder false e o que os avisa de que este
-  // drone nao anda de lado -- em vez de comandar assim mesmo e descobrir no voo.
+  // Como os estados de alinhamento fino sabem que este drone nao anda de lado.
   EXPECT_FALSE(criarPolitica("axial")->permiteCorrecaoLateral());
   EXPECT_TRUE(criarPolitica("holonomica")->permiteCorrecaoLateral());
 }
@@ -221,8 +191,8 @@ TEST(Axial, DeclaraQueNaoAceitaCorrecaoLateral)
 
 TEST(Holonomica, ComandaUmPassoNaDirecaoDoDestino)
 {
-  // Reproduz o que o WaypointListState::navigate() fazia: setpoint a `passo`
-  // metros a frente, na direcao do destino, com a guinada congelada.
+  // O que o WaypointListState::navigate() fazia: setpoint `passo` metros a
+  // frente, guinada congelada.
   auto politica = criarPolitica("holonomica");
   Limites lim;
   lim.passo = 0.5;
@@ -238,9 +208,7 @@ TEST(Holonomica, ComandaUmPassoNaDirecaoDoDestino)
 
 TEST(Holonomica, AndaDeLadoQuandoODestinoEstaDeLado)
 {
-  // Este teste documenta a diferenca entre as duas politicas. Nao e um
-  // defeito da holonomica: e o comportamento de sempre, e e por existir que a
-  // axial precisa ser uma escolha.
+  // Nao e defeito: e o comportamento de sempre, e por isso a axial existe.
   auto politica = criarPolitica("holonomica");
   Limites lim;
   lim.passo = 0.5;
@@ -266,9 +234,8 @@ TEST(Holonomica, ChegouDentroDaTolerancia)
 
 TEST(Politicas, YawNaoPropagaNaN)
 {
-  // Os estados passam NaN em yaw_alvo para dizer "nao me importo". Repassar
-  // isso ao setpoint faria o PX4 rejeitar a mensagem INTEIRA em silencio: o
-  // drone simplesmente para de receber comando, sem erro em lugar nenhum.
+  // NaN significa "nao me importo". Repassado ao setpoint, o PX4 rejeitaria a
+  // mensagem inteira em silencio.
   Limites lim;
   const Eigen::Vector3d alvo(5.0, 0.0, -2.0);
   const Pose pose = emRepouso(0.0, 0.0, 0.3);
@@ -290,16 +257,15 @@ TEST(Politicas, YawNaoPropagaNaN)
 
 TEST(Politicas, NomeDesconhecidoDevolveNullptr)
 {
-  // Cair no padrao com um nome errado seria o pior desfecho: o drone voaria de
-  // um jeito que ninguem pediu, e o YAML continuaria dizendo outra coisa.
+  // Cair no padrao com nome errado faria o drone voar de um jeito que ninguem
+  // pediu, com o YAML dizendo outra coisa.
   EXPECT_EQ(criarPolitica("axil"), nullptr);
   EXPECT_EQ(criarPolitica(""), nullptr);
 }
 
 TEST(Politicas, OPadraoEAHolonomica)
 {
-  // Uma missao que nao declara `motion_policy` tem de voar exatamente como
-  // voava antes desta camada existir.
+  // Quem nao declara `motion_policy` voa como antes desta camada.
   auto p = criarPolitica(drone::kPoliticaPadrao);
   ASSERT_NE(p, nullptr);
   EXPECT_STREQ(p->nome(), "holonomica");

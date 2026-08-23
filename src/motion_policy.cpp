@@ -14,13 +14,9 @@ double normalizarAngulo(double a)
   return a;
 }
 
-// ---------------------------------------------------------------------------
-// A ponte entre a decisao (pura) e o drone (ROS).
-//
-// As duas funcoes abaixo sao as UNICAS de todo este arquivo que falam com o
-// `Drone`. Tudo o que decide para onde ir esta em `decidir()`, que nao conhece
-// ROS e por isso pode ser testado.
-// ---------------------------------------------------------------------------
+// As duas funcoes abaixo sao as unicas deste arquivo que falam com o Drone;
+// tudo o que decide para onde ir esta em decidir(), que nao conhece ROS.
+
 bool MotionPolicy::irPara(
   const std::shared_ptr<Drone> & drone,
   const Eigen::Vector3d & alvo,
@@ -56,17 +52,10 @@ void MotionPolicy::parar(const std::shared_ptr<Drone> & drone)
 namespace
 {
 
-// ---------------------------------------------------------------------------
-// Holonomica — o comportamento de sempre.
-//
-// Isto e o miolo do `WaypointListState::navigate()`, movido para ca SEM
-// MUDANCA. Extrair em vez de reescrever e o que garante que uma missao sem
-// `motion_policy` no YAML voe exatamente como voava: a comparacao nao depende
-// de eu ter lido a intencao certa, so de o codigo ser o mesmo.
-//
-// O drone vai em linha reta ate o destino, com a guinada que lhe mandarem --
-// inclusive de lado, se o destino estiver de lado.
-// ---------------------------------------------------------------------------
+// ── Holonomica ──────────────────────────────────────────────────────────────
+// Linha reta ate o destino, com a guinada que mandarem -- inclusive de lado.
+// Miolo do WaypointListState::navigate(), movido para ca sem mudanca.
+
 class Holonomica : public MotionPolicy
 {
 public:
@@ -81,9 +70,8 @@ public:
     const Limites & lim) override
   {
     Comando c;
-    // Um yaw_alvo NaN quer dizer "mantenha o que esta". Passa-lo adiante
-    // colocaria NaN no setpoint, e o PX4 rejeita a mensagem inteira em
-    // silencio -- o drone simplesmente para de receber comando.
+    // NaN quer dizer "mantenha o yaw atual". Repassado, o PX4 rejeitaria a
+    // mensagem inteira em silencio.
     c.yaw = std::isnan(yaw_alvo) ? pose.yaw : yaw_alvo;
 
     const Eigen::Vector3d diff = alvo - pose.posicao;
@@ -94,9 +82,8 @@ public:
       return c;
     }
 
-    // O setpoint vai `passo` metros a frente, na direcao do destino -- e nao
-    // no destino. Quem voa e o controlador de posicao do PX4, e a distancia do
-    // setpoint e o que regula a velocidade que ele escolhe.
+    // Setpoint `passo` metros a frente, e nao no destino: e a distancia do
+    // setpoint que regula a velocidade escolhida pelo PX4.
     const Eigen::Vector3d passo =
       diff.norm() > lim.passo ? diff.normalized() * lim.passo : diff;
     c.posicao = pose.posicao + passo;
@@ -104,32 +91,13 @@ public:
   }
 };
 
-// ---------------------------------------------------------------------------
-// Axial — gira parado, so entao avanca. Nunca anda de lado.
+// ── Axial ───────────────────────────────────────────────────────────────────
+// Gira parado, so entao avanca. Nunca anda de lado.
 //
-// Promovido do `MovimentoAxial` da fase4, que voa assim desde sempre porque no
-// labirinto nao ha escolha: girar e transladar ao mesmo tempo varre uma pegada
-// maior que a do drone parado, e num corredor de 0,95 m com um drone de 0,40 m
-// a diferenca entre varrer e nao varrer e a diferenca entre passar e bater.
-//
-// Como o comando e de POSICAO e nao de velocidade, a fase de girar comanda a
-// POSICAO ATUAL com a guinada nova -- o drone gira parado -- e so entao a fase
-// de avancar muda a posicao.
-//
-// A GARANTIA, e como ela se sustenta
-//
-// Na fase de girar, a politica comanda a posicao em que o drone JA ESTA: e
-// impossivel produzir deslocamento. Na fase de avancar ela comanda o destino
-// com o rumo ate ele -- e so chegou nessa fase depois de ja estar apontada
-// para la.
-//
-// O que a torna estrutural, e nao convencao, e a reentrada: se durante o
-// avanco o rumo sair da tolerancia -- porque o destino se moveu, ou porque o
-// drone derivou --, ela VOLTA a girar em vez de corrigir de lado. O
-// MovimentoAxial da fase4 nao fazia isso; ele dependia de quem o chamava
-// escolher um destino alinhado com a guinada, e um chamador distraido produzia
-// exatamente o deslocamento lateral que a classe existia para impedir.
-// ---------------------------------------------------------------------------
+// Promovido do MovimentoAxial da fase4: girar e transladar ao mesmo tempo
+// varre uma pegada maior que a do drone parado, e num corredor de 0,95 m com
+// um drone de 0,40 m isso e a diferenca entre passar e bater.
+
 class Axial : public MotionPolicy
 {
 public:
@@ -154,31 +122,27 @@ public:
 
     if (resta < lim.posicao) {
       fase_ = Fase::Pronto;
-      // Chegou: pode assumir a guinada final que o estado pediu, girando
-      // parado sobre o destino.
       c.posicao = alvo;
       c.yaw = std::isnan(yaw_alvo) ? pose.yaw : yaw_alvo;
       c.chegou = true;
       return c;
     }
 
-    // O rumo que aponta para o destino. Em FRD, x e para a frente e y para a
-    // direita, e a guinada cresce de x para y -- entao e atan2(dy, dx).
+    // Em FRD a guinada cresce de x para y, entao o rumo e atan2(dy, dx).
     const double rumo = std::atan2(
       alvo.y() - pose.posicao.y(), alvo.x() - pose.posicao.x());
-
     const double erro_de_rumo = std::abs(normalizarAngulo(rumo - pose.yaw));
 
-    // Reentrada: fora da tolerancia, volta (ou fica) girando. Vale tanto para
-    // o primeiro tick quanto para uma deriva no meio do avanco.
+    // Reentrada: fora da tolerancia, volta a girar em vez de corrigir de lado.
+    // E o que torna a garantia estrutural -- o MovimentoAxial nao a tinha, e
+    // dependia de quem o chamava escolher um destino ja alinhado.
     if (fase_ != Fase::Avancando || erro_de_rumo > lim.yaw) {
       if (erro_de_rumo < lim.yaw) {
         fase_ = Fase::Avancando;
       } else {
         fase_ = Fase::Girando;
-        // GIRA PARADO: comanda a posicao ATUAL. Este `c.posicao = pose.posicao`
-        // e a garantia inteira -- enquanto o rumo nao converge, nao existe
-        // setpoint que desloque o drone.
+        // Comandar a posicao ATUAL e a garantia inteira: enquanto o rumo nao
+        // converge nao existe setpoint que desloque o drone.
         c.posicao = pose.posicao;
         c.posicao.z() = alvo.z();   // subir/descer nao e andar de lado
         c.yaw = rumo;
@@ -186,25 +150,13 @@ public:
       }
     }
 
-    // Alinhado: avanca SOBRE A PROA, e nao sobre a reta ate o destino.
+    // Avanca SOBRE A PROA, projetando o destino nela.
     //
-    // POR QUE PROJETAR, E NAO COMANDAR O DESTINO
-    //
-    // Comandar o destino cru parece equivalente -- afinal o rumo ja esta dentro
-    // da tolerancia. Nao e, e a diferenca foi medida pelo teste: com tolerancia
-    // de 0,05 rad e um destino a 5 m, a componente lateral do deslocamento
-    // comandado e 5 · sen(0,05) = 0,25 m. O drone anda um quarto de metro para
-    // o lado, dentro das regras, porque "alinhado o bastante" vezes "longe o
-    // bastante" da um desvio real.
-    //
-    // Projetando o destino sobre a reta da proa, a componente lateral e ZERO
-    // por construcao -- nao aproximadamente zero. A garantia deixa de depender
-    // do valor da tolerancia.
-    //
-    // O que sobra de erro lateral vira erro de RUMO conforme o drone se
-    // aproxima (a mesma distancia lateral subtende um angulo maior de perto), e
-    // ai a reentrada acima o manda girar. E assim que ele converge: avanca
-    // reto, para, corrige a proa, avanca reto de novo.
+    // Comandar o destino cru nao e equivalente: com tolerancia de 0,05 rad e
+    // destino a 5 m, a componente lateral e 5·sen(0,05) = 0,25 m -- medido
+    // pelo teste. Projetando, ela e zero por construcao, e a garantia deixa de
+    // depender do valor da tolerancia. O erro lateral residual vira erro de
+    // rumo conforme o drone se aproxima, e a reentrada acima o manda girar.
     const double proa_x = std::cos(pose.yaw);
     const double proa_y = std::sin(pose.yaw);
     const double avanco =
@@ -213,9 +165,7 @@ public:
     c.posicao.x() = pose.posicao.x() + proa_x * avanco;
     c.posicao.y() = pose.posicao.y() + proa_y * avanco;
     c.posicao.z() = alvo.z();
-    // A guinada comandada e a ATUAL: durante o avanco o drone nao gira. Girar
-    // enquanto translada e exatamente o que esta politica existe para impedir.
-    c.yaw = pose.yaw;
+    c.yaw = pose.yaw;   // durante o avanco o drone nao gira
     return c;
   }
 
