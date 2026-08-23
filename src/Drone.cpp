@@ -638,6 +638,25 @@ void Drone::setOffboardControlMode(DronePX4::CONTROLLER_TYPE type) {
 	this->vehicle_offboard_control_mode_pub_->publish(msg);
 }
 
+// >>> CONTRATO px4.sequencia-de-offboard
+// A ordem para colocar o drone em offboard, e por que cada passo existe:
+//
+//   1. waitForOdometry()   SEM ISSO, os setpoints do passo 2 dizem ao PX4
+//                          "segure em (0,0,0) NED" mesmo com o drone noutro
+//                          lugar -- current_pos_* ainda esta zerado.
+//   2. 20 setpoints a 10 Hz  O PX4 RECUSA entrar em offboard sem um fluxo de
+//                          setpoints ja chegando. Nao e opcional.
+//   3. VEHICLE_CMD_DO_SET_MODE param1=1 param2=6   (6 = OFFBOARD; 7 = POSCTL)
+//   4. armar
+//   5. setHomePosition()   DEPOIS de armar: antes, o EKF ainda nao convergiu
+//                          para o heading verdadeiro e initial_yaw_ fica em 0
+//                          enquanto o rumo real e outro.
+//
+// E NAO HA WATCHDOG DE SETPOINT. O Drone so publica quando um estado chama
+// setLocal*(). Se o tick de 20 Hz da missao travar, o fluxo para e o PX4 sai
+// de offboard por falha de seguranca.
+// <<< CONTRATO
+
 void Drone::toOffboardSync() {
 	// CRITICAL: wait for first odometry so current_pos_x/y/z are valid.
 	// Without this, the 20 setpoints below tell PX4 "hold at (0,0,0) NED"

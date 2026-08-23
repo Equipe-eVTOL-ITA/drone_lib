@@ -37,6 +37,7 @@ include_directories(include)
 add_library(drone_lib SHARED
   src/Drone.cpp
   src/movement.cpp
+  src/motion_policy.cpp
   src/transformations.cpp
 )
 
@@ -79,5 +80,30 @@ install(
 
 install(TARGETS system_health
   RUNTIME DESTINATION lib/${PROJECT_NAME})
+
+# O bloco de testes fica AQUI, e nao junto com o lint la em cima: ele precisa
+# do alvo `drone_lib`, que so existe a partir do add_library acima. Um
+# target_link_libraries contra um alvo ainda nao declarado e erro de CMake.
+if(BUILD_TESTING)
+  # ---------------------------------------------------------------------------
+  # O primeiro teste deste pacote.
+  #
+  # O drone_lib e a fronteira com o PX4 -- todo comando que chega ao drone passa
+  # por aqui -- e nao tinha nenhum. A razao era real: a classe `Drone` e um
+  # rclcpp::Node que gira o proprio executor numa thread, e testar qualquer
+  # coisa que a toque exigiria subir ROS.
+  #
+  # A MotionPolicy foi escrita separando a DECISAO da PUBLICACAO justamente
+  # para nao herdar esse problema: `decidir()` nao conhece ROS, e e nela que
+  # mora a garantia de que a politica axial nunca desloca o drone de lado.
+  # ---------------------------------------------------------------------------
+  find_package(ament_cmake_gtest REQUIRED)
+  ament_add_gtest(test_motion_policy test/test_motion_policy.cpp)
+  if(TARGET test_motion_policy)
+    target_include_directories(test_motion_policy PRIVATE include)
+    target_link_libraries(test_motion_policy drone_lib)
+    ament_target_dependencies(test_motion_policy Eigen3 px4_msgs rclcpp tf2 custom_msgs)
+  endif()
+endif()
 
 ament_package()
