@@ -45,6 +45,24 @@
 
 #include "drone/Drone.hpp"
 
+// >>> CONTRATO movimento.politica
+// COMO o drone vai de um ponto a outro e uma chave de YAML, e nao codigo:
+//
+//     motion_policy: holonomica   # padrao -- linha reta, inclusive de lado
+//     motion_policy: axial        # gira parado, so entao avanca; nunca de lado
+//
+// Quem obedece: WaypointListState, GoToState e ReturnHomeState (stdstates), e
+// portanto toda missao que os usa. A fase4 ja voava axial por conta propria.
+//
+// Quem NAO obedece, de proposito: PrecisionAlignState e o CentralizarNoComodo
+// da fase4. Sao correcoes de centimetros em malha fechada com a camera, e
+// girar antes de cada uma destruiria o alinhamento em vez de proteje-lo. Eles
+// perguntam permiteCorrecaoLateral() antes de comandar.
+//
+// A lista completa de onde nasce um comando de movimento esta em
+// docs/CONTRATOS.md, secao "Onde se comanda movimento" -- gerada do codigo.
+// <<< CONTRATO
+
 namespace drone
 {
 

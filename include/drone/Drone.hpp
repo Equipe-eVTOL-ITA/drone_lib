@@ -100,6 +100,30 @@ enum CONTROLLER_TYPE
 } // namespace DronePX4
 
 
+// >>> CONTRATO frames.fronteira-px4
+// O drone_lib e a UNICA camada que fala NED/FRD. Tudo acima dele -- stdstates,
+// as fases, as missoes -- trabalha no referencial da missao.
+//
+//   NED / FRD   x para o NORTE, y para o LESTE, z para BAIXO (PX4)
+//               no corpo: x para a FRENTE, y para a DIREITA, z para BAIXO
+//
+// O "FRD" devolvido por getLocalPosition() NAO e o corpo do drone: e um
+// referencial de MUNDO ancorado na decolagem -- origem na posicao em que
+// setHomePosition() foi chamada, eixo x no rumo daquele instante. Ele NAO gira
+// com o drone. Comandar y em setLocalPosition() e transladar para o lado
+// naquele referencial, e nao "ir para a direita do drone".
+//
+// Os tres setpoints diferem no referencial, e essa e a armadilha:
+//
+//   setLocalPosition(x,y,z,yaw)      mundo da decolagem; rotaciona so por initial_yaw_
+//   setLocalVelocity(vx,vy,vz,rate)  idem -- NAO e corpo. Para corpo, use o
+//                                    move_local_by_speed() do movement.hpp
+//   setMixedSetpoint(vx,vy,z,yaw)    XY em velocidade no CORPO de verdade
+//                                    (usa o yaw ATUAL), Z em posicao
+//
+// z POSITIVO E PARA BAIXO. Uma velocidade z positiva DESCE.
+// <<< CONTRATO
+
 class Drone : public rclcpp::Node
 {
 public:
