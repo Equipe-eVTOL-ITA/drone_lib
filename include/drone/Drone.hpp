@@ -165,7 +165,11 @@ public:
 	void disarm();
 	void disarmSync();
 
-	//void takeoff();
+	/// Decolagem AUTO do PX4. NaN = posicao atual / MIS_TAKEOFF_ALT.
+	/// TIRA o drone de offboard; ver o comentario no Drone.cpp.
+	void takeoff(
+		float altitude_amsl = std::numeric_limits<float>::quiet_NaN(),
+		float yaw = std::numeric_limits<float>::quiet_NaN());
 
 	void land();
 
