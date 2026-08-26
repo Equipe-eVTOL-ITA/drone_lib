@@ -424,10 +424,26 @@ void Drone::disarmSync() {
   	}
 }
 
-/*
-void Drone::takeoff() {
-  	this->sendCommand(
-   		// https://mavlink.io/en/messages/common.html#MAV_CMD_NAV_TAKEOFF
+// Decolagem AUTO do proprio PX4 (MAV_CMD_NAV_TAKEOFF).
+//
+// Estava comentada, e nao podia ser reativada como estava: referenciava lat_,
+// lon_ e alt_, membros que sairam da classe. Esta versao passa NaN nos tres
+// campos de posicao global, que e como se diz ao PX4 "use a posicao atual".
+//
+// A ALTURA NAO E A DA MISSAO. Com param7 em NaN o PX4 sobe ate o proprio
+// MIS_TAKEOFF_ALT, e nao ate o `takeoff_height` do YAML. Quem quiser a altura
+// da missao passa `altitude_amsl` -- mas ela e AMSL, e esta classe nao rastreia
+// posicao global, entao na pratica quem usa este modo aceita o parametro do
+// firmware. E o mesmo tipo de troca do modo LAND, que ignora as
+// landing_velocity_*.
+//
+// TIRA O DRONE DE OFFBOARD: o PX4 entra em AUTO_TAKEOFF e termina em
+// AUTO_LOITER. Quem chamar precisa reentrar em offboard antes de voltar a
+// mandar setpoint -- ver stdstates/takeoff/px4_takeoff.hpp.
+void Drone::takeoff(float altitude_amsl, float yaw)
+{
+	// https://mavlink.io/en/messages/common.html#MAV_CMD_NAV_TAKEOFF
+	this->sendCommand(
 		px4_msgs::msg::VehicleCommand::VEHICLE_CMD_NAV_TAKEOFF,
 		this->target_system_,
 		this->target_component_,
@@ -435,16 +451,15 @@ void Drone::takeoff() {
 		this->source_component_,
 		this->confirmation_,
 		this->from_external_,
-		0.1f,  // Minimum pitch (if airspeed sensor present), desired pitch without sensor (degrees)
-		0,     // Empty
-		0,     // Empty
-		1.57,  // Yaw angle (degrees)
-		this->lat_,  // Latitude
-		this->lon_,  // Longitude
-		this->alt_ + 5.0f // Altitude (meters)
-	);  
+		0.1f,                                          // param1: pitch minimo
+		0.0f,                                          // param2: vazio
+		0.0f,                                          // param3: vazio
+		yaw,                                           // param4: guinada (NaN = a atual)
+		std::numeric_limits<float>::quiet_NaN(),       // param5: latitude  (NaN = aqui)
+		std::numeric_limits<float>::quiet_NaN(),       // param6: longitude (NaN = aqui)
+		altitude_amsl                                  // param7: altitude AMSL (NaN = MIS_TAKEOFF_ALT)
+	);
 }
-*/
 
 void Drone::land()
 {
