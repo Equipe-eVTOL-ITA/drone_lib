@@ -62,20 +62,13 @@ jobs:
           curl -fsSL -o evtol.repos \
             https://raw.githubusercontent.com/Equipe-eVTOL-ITA/evtol-dev/main/evtol.repos
 
-      # O `rosdep update` sozinho leva mais de um minuto e baixa sempre a mesma
-      # coisa.
-      #
-      # O CAMINHO NAO E ~/.ros NEM /root/.ros. Em job com `container:`, o
-      # GitHub Actions forca HOME=/github/home -- e a primeira versao disto
-      # apontava para /root/.ros/rosdep, salvava um cache de ZERO byte e o
-      # `rosdep update` seguia levando 80s em todo run, sem nenhum sinal de
-      # que o cache nao servia para nada.
-      - name: Cache do rosdep
-        uses: actions/cache@v4
-        with:
-          path: /github/home/.ros/rosdep
-          key: rosdep-humble-${{ github.run_id }}
-          restore-keys: rosdep-humble-
+      # NAO HA CACHE DE ROSDEP AQUI, de proposito. A primeira versao deste
+      # arquivo cacheava /root/.ros/rosdep e salvava ZERO byte; a segunda
+      # tentou /github/home/.ros/rosdep e salvou zero de novo. Medindo o log em
+      # vez de adivinhar o caminho: o `rosdep update` leva 3 SEGUNDOS. Os ~80s
+      # do passo sao o `rosdep install` rodando apt-get, que nenhum cache de
+      # sources.cache toca. Cachear apt e outro problema, e nao vale a
+      # complexidade aqui.
 
       # O ganho real. Sem ccache, todo run recompila o workspace inteiro do
       # zero; com ele, só o que mudou de fato.
